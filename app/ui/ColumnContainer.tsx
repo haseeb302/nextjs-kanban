@@ -62,7 +62,7 @@ function ColumnContainer({
       </div>
       <div className="flex flex-grow flex-col p-2 gap-4 overflow-x-hidden overflow-y-auto">
         <SortableContext items={tasksId}>
-          {rows && rows?.map((row: any) => <Task task={row} />)}
+          {rows && rows?.map((row: any) => <Task task={row} key={row.id} />)}
         </SortableContext>
       </div>
       <Button
