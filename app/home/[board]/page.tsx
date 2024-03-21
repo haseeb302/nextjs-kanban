@@ -105,7 +105,7 @@ export default function Page() {
     [columns]
   );
 
-  const [activeColumn, setActiveColumn] = useState(null);
+  const [activeColumn, setActiveColumn] = useState<any>(null);
   const [activeTask, setActiveTask] = useState(null);
 
   function generateId() {
@@ -162,7 +162,7 @@ export default function Page() {
     const { active, over } = event;
     if (!over) return;
     const activeId = active.id;
-    const overId = over.id;
+    const overId: any = over.id;
 
     if (activeId === overId) return;
 
@@ -188,7 +188,6 @@ export default function Page() {
     if (isActiveATask && isOverAColumn) {
       setTasks((tasks) => {
         const activeIndex = tasks.findIndex((t) => t.task_id === activeId);
-
         tasks[activeIndex].column_id = overId;
 
         return arrayMove(tasks, activeIndex, activeIndex);
