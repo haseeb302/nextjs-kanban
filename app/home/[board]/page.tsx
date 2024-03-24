@@ -11,9 +11,10 @@ import {
   DragStartEvent,
 } from "@dnd-kit/core";
 import { arrayMove, SortableContext } from "@dnd-kit/sortable";
-import { title } from "process";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import { usePathname } from "next/navigation";
+import { getBoardColumns, setBoardColumns } from "@/lib/data";
 
 interface Board {
   id: number;
@@ -69,9 +70,9 @@ const board: Board = {
 
 const defaultTasks = [
   {
-    task_id: 11,
+    task_id: 111,
     title: "Task 1",
-    column_id: 1,
+    column_id: 2,
     description: "0 of 3 subtasks",
   },
   {
@@ -97,19 +98,27 @@ const defaultTasks = [
 // const emptyBoard = [];
 
 export default function Page() {
-  const [columns, setColumns] = useState(board.columns);
-  const [tasks, setTasks] = useState(defaultTasks);
+  const [columns, setColumns] = useState<any>([]);
+  const [tasks, setTasks] = useState<any>(defaultTasks);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+    const columns = getBoardColumns(decodeURI(pathname));
+    setColumns(columns);
+  }, []);
 
   const columnIds = useMemo(
-    () => columns.map((column: any) => column.id),
+    () => columns.map((column: any) => column.name),
     [columns]
   );
 
   const [activeColumn, setActiveColumn] = useState<any>(null);
   const [activeTask, setActiveTask] = useState(null);
 
+  const pathname = usePathname();
+
   function generateId() {
-    /* Generate a random number between 0 and 10000 */
     return Math.floor(Math.random() * 10001);
   }
 
@@ -117,11 +126,10 @@ export default function Page() {
     const columnToAdd = {
       id: generateId(),
       board_id: 1,
-      name: `Column ${board.columns.length + 1}`,
+      name: `Column ${columns.length + 1}`,
     };
-    board.columns.push(columnToAdd);
-    console.log(board.columns);
-    setColumns([...board.columns]);
+    columns.push(columnToAdd);
+    setColumns([...columns]);
   };
 
   const onDragStart = (event: DragStartEvent) => {
@@ -140,6 +148,7 @@ export default function Page() {
     setActiveTask(null);
 
     const { active, over } = event;
+
     if (!over) return;
     const activeColumnId = active.id;
     const overColumnId = over.id;
@@ -148,13 +157,19 @@ export default function Page() {
 
     setColumns((columns: any) => {
       const activeColumnIndex = columns.findIndex(
-        (col: any) => col.id === activeColumnId
+        (col: any) => col.name === activeColumnId
       );
       const overColumnIndex = columns.findIndex(
-        (col: any) => col.id === overColumnId
+        (col: any) => col.name === overColumnId
       );
 
-      return arrayMove(columns, activeColumnIndex, overColumnIndex);
+      const updatedColumns = arrayMove(
+        columns,
+        activeColumnIndex,
+        overColumnIndex
+      );
+      setBoardColumns(decodeURI(pathname), updatedColumns);
+      return updatedColumns;
     });
   };
 
@@ -163,43 +178,77 @@ export default function Page() {
     if (!over) return;
     const activeId = active.id;
     const overId: any = over.id;
-
     if (activeId === overId) return;
 
     const isActiveATask = active.data.current?.type === "Task";
     const isOverATask = over.data.current?.type === "Task";
 
+    console.log(active);
+
+    const activeTaskStatus = active.data.current?.task?.status;
+    const overTaskStatus = over?.data?.current?.task?.status;
+
     if (!isActiveATask) return;
 
     if (isActiveATask && isOverATask) {
-      setTasks((tasks) => {
-        const activeIndex = tasks.findIndex((t) => t.task_id === activeId);
-        const overIndex = tasks.findIndex((t) => t.task_id === overId);
+      setColumns((columns: any) => {
+        console.log(columns);
+        const column1 = columns.find(
+          (column: any) => column.name === activeTaskStatus
+        );
+        const activeTaskIndex = column1.tasks.findIndex(
+          (t: any) => t.task_id === activeId
+        );
+        const column2 = columns.find(
+          (column: any) => column.name === overTaskStatus
+        );
+        const overTaskIndex = column2.tasks.findIndex(
+          (t: any) => t.task_id === overId
+        );
 
-        if (tasks[activeIndex].column_id !== tasks[overIndex].column_id) {
-          tasks[activeIndex].column_id = tasks[overIndex].column_id;
+        if (
+          column1.tasks[activeTaskIndex].status !==
+          column2.tasks[overTaskIndex].status
+        ) {
+          column1.tasks[activeTaskIndex].status =
+            column2.tasks[overTaskIndex].status;
         }
 
-        return arrayMove(tasks, activeIndex, overIndex);
+        let updatedArray = arrayMove(
+          column1.tasks,
+          activeTaskIndex,
+          overTaskIndex
+        );
+        return updatedArray;
       });
+      // setTasks((tasks: any) => {
+      //   const activeIndex = tasks.findIndex((t) => t.task_id === activeId);
+      //   const overIndex = tasks.findIndex((t) => t.task_id === overId);
+      //   console.log(activeIndex);
+      //   if (tasks[activeIndex].status !== tasks[overIndex].status) {
+      //     tasks[activeIndex].statsu = tasks[overIndex].status;
+      //   }
+
+      //   return arrayMove(tasks, activeIndex, overIndex);
+      // });
     }
 
     const isOverAColumn = over.data.current?.type === "Column";
     if (isActiveATask && isOverAColumn) {
       setTasks((tasks) => {
         const activeIndex = tasks.findIndex((t) => t.task_id === activeId);
-        tasks[activeIndex].column_id = overId;
+        tasks[activeIndex].status = overId;
 
         return arrayMove(tasks, activeIndex, activeIndex);
       });
     }
   };
 
-  const createTask = (column_id: any) => {
+  const createTask = (column: any) => {
     const newTask = {
       task_id: generateId(),
       title: `Finish the project ${tasks.length + 1}`,
-      column_id,
+      status: column,
       description: "No Subtasks",
     };
     setTasks([...tasks, newTask]);
@@ -216,9 +265,10 @@ export default function Page() {
           {columns?.map((column: any) => (
             <ColumnContainer
               column={column}
-              key={column.id}
+              key={column.name}
               createTask={createTask}
-              rows={tasks.filter((task) => task.column_id === column.id)}
+              // rows={tasks.filter((task) => task.column_id === column.id)}
+              rows={column.tasks}
             />
           ))}
         </SortableContext>
@@ -237,19 +287,22 @@ export default function Page() {
           </div>
         </Button>
       </div>
-      {createPortal(
-        <DragOverlay>
-          {activeColumn && (
-            <ColumnContainer
-              column={activeColumn}
-              createTask={createTask}
-              rows={tasks.filter((task) => task.column_id === activeColumn.id)}
-            />
-          )}
-          {activeTask && <Task task={activeTask} />}
-        </DragOverlay>,
-        document.body
-      )}
+      {isMounted
+        ? createPortal(
+            <DragOverlay>
+              {activeColumn !== null && (
+                <ColumnContainer
+                  column={activeColumn}
+                  createTask={createTask}
+                  key={activeColumn.name}
+                  rows={activeColumn.tasks}
+                />
+              )}
+              {activeTask && <Task task={activeTask} />}
+            </DragOverlay>,
+            document.body
+          )
+        : null}
     </DndContext>
   );
 }

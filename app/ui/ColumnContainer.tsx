@@ -14,7 +14,7 @@ function ColumnContainer({
   createTask: (column_id: any) => void;
   rows: any;
 }) {
-  const tasksId = useMemo(() => rows.map((row: any) => row.task_id), [rows]);
+  const tasksId = useMemo(() => rows?.map((row: any) => row.task_id), [rows]);
 
   const {
     setNodeRef,
@@ -24,7 +24,7 @@ function ColumnContainer({
     transition,
     isDragging,
   } = useSortable({
-    id: column.id,
+    id: column.name,
     data: {
       type: "Column",
       column,
@@ -53,22 +53,27 @@ function ColumnContainer({
       ref={setNodeRef}
       style={style}
       className="w-[300px] h-[500px]
-      max-h-[500px] p-3 rounded-md bg-white flex
+      max-h-[500px] p-3 rounded-md border-2 bg-white flex
       flex-col"
-      key={column.id}
     >
-      <div {...attributes} {...listeners}>
+      <div {...attributes} {...listeners} className="mb-2">
         <h2 className="font-bold text-[#49C4E5]">{column.name}</h2>
       </div>
       <div className="flex flex-grow flex-col p-2 gap-4 overflow-x-hidden overflow-y-auto">
         <SortableContext items={tasksId}>
-          {rows && rows?.map((row: any) => <Task task={row} key={row.id} />)}
+          {rows &&
+            rows?.map(
+              (row: any) =>
+                row.status === column.name && (
+                  <Task task={row} key={row.task_id} />
+                )
+            )}
         </SortableContext>
       </div>
       <Button
         variant="outline"
-        className=""
-        onClick={() => createTask(column.id)}
+        className="mt-2"
+        onClick={() => createTask(column.name)}
       >
         <PlusIcon size={16} />
       </Button>

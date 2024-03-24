@@ -1,4 +1,8 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+  env: {
+    baseUrl: "/home",
+  },
+};
 
 export default nextConfig;

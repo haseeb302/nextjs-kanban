@@ -32,9 +32,17 @@ export default function Task({ task }: any) {
     );
   }
 
+  const subtaskCompleted = (task: any) => {
+    const length = task?.subtasks?.length;
+    const compledtedLength = task?.subtasks?.filter(
+      (subtask) => subtask.isCompleted == true
+    );
+    return `${compledtedLength.length} of ${length} subtasks`;
+  };
+
   return (
     <div
-      className="p-3 border rounded-md bg-zinc-200 bg-opacity-50"
+      className="p-3 border rounded-md bg-white shadow-md"
       key={task.id}
       ref={setNodeRef}
       style={style}
@@ -42,7 +50,7 @@ export default function Task({ task }: any) {
       {...listeners}
     >
       <p className="font-bold">{task.title}</p>
-      <span className="text-xs text-[#828FA3]">{task.description}</span>
+      <span className="text-xs text-[#828FA3]">{subtaskCompleted(task)}</span>
     </div>
   );
 }
